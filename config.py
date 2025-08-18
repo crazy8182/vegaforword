@@ -10,7 +10,7 @@ class Config:
     API_HASH = environ.get("API_HASH", "7c5af0b88c33d2f5cce8df5d82eb2a94")
     BOT_TOKEN = environ.get("BOT_TOKEN", "") 
     BOT_SESSION = environ.get("BOT_SESSION", "vegamoviesforwordbot") 
-    DATABASE_URI = environ.get("DATABASE", "mongodb+srv://mahesh81:mahesh81@cluster0.ozx17.mongodb.net/?retryWrites=true&w=majority")
+    DATABASE_URI = environ.get("DATABASE", "mongodb+srv://akimax8182:akimax8182@cluster0.ofqgikn.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
     DATABASE_NAME = environ.get("DATABASE_NAME", "Cluster0")
     BOT_OWNER_ID = [int(id) for id in environ.get("BOT_OWNER_ID", '6859451629').split()]
     LOG_CHANNEL = int(environ.get('LOG_CHANNEL', '-1002084819782'))
