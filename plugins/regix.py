@@ -267,7 +267,7 @@ def custom_caption(msg, caption):
       if media:
         file_name = getattr(media, 'file_name', '')
         file_size = getattr(media, 'file_size', '')
-        fcaption = getattr(msg, 'caption', '<b>{filename}\n\nUploaded By: <a href="https://t.me/akimax_06">~ 𝗔ᴋ𝗜ᴍᴀ𝘅𝗠ᴏᴠɪᴇ𝘀 ~</a></b>')
+        fcaption = getattr(msg, 'caption', '')
         if fcaption:
           fcaption = fcaption.html
         if caption:
