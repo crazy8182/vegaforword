@@ -66,7 +66,7 @@ async def pub_(bot, message):
     await db.add_frwd(user)
     await send(client, user, "<b>🚥 ғᴏʀᴡᴀʀᴅɪɴɢ sᴛᴀʀᴛᴇᴅ</b>")
     sts.add(time=True)
-    sleep = 1 if _bot['is_bot'] else 10
+    sleep = 0.5 if _bot['is_bot'] else 5
     await msg_edit(m, "<code>ᴘʀᴏᴄᴇssɪɴɢ ...</code>") 
     temp.IS_FRWD_CHAT.append(i.TO)
     temp.lock[user] = locked = True
@@ -74,7 +74,7 @@ async def pub_(bot, message):
         try:
           MSG = []
           pling=0
-          await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 10, sts)
+          await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 5, sts)
           print(f"Starting Forwarding Process... From :{sts.get('FROM')} To: {sts.get('TO')} Total: {sts.get('limit')} stats : {sts.get('skip')})")
           async for message in client.iter_messages(
             client,
@@ -84,8 +84,8 @@ async def pub_(bot, message):
             ):
                 if await is_cancelled(client, user, m, sts):
                    return
-                if pling %20 == 0: 
-                   await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 10, sts)
+                if pling %100 == 0: 
+                   await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 5, sts)
                 pling += 1
                 sts.add('fetched')
                 if message == "DUPLICATE":
@@ -105,7 +105,7 @@ async def pub_(bot, message):
                         or completed <= 100): 
                       await forward(client, MSG, m, sts, protect)
                       sts.add('total_files', notcompleted)
-                      await asyncio.sleep(10)
+                      await asyncio.sleep(2)
                       MSG = []
                 else:
                    new_caption = custom_caption(message, caption)
@@ -146,7 +146,7 @@ async def copy(bot, msg, m, sts):
    except FloodWait as e:
      await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', e.value, sts)
      await asyncio.sleep(e.value)
-     await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 10, sts)
+     await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 5, sts)
      await copy(bot, msg, m, sts)
    except Exception as e:
      print(e)
@@ -166,7 +166,7 @@ async def forward(bot, msg, m, sts, protect):
    except FloodWait as e:
      await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', e.value, sts)
      await asyncio.sleep(e.value)
-     await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 10, sts)
+     await edit(m, 'ᴘʀᴏɢʀᴇssɪɴɢ', 5, sts)
      await forward(bot, msg, m, sts, protect)
 
 PROGRESS = """
