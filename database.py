@@ -93,7 +93,7 @@ class Database:
          
     async def get_configs(self, id):
         default = {
-            'caption': None,
+            'caption': True,
             'duplicate': True,
             'forward_tag': False,
             'file_size': 0,
