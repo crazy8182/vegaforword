@@ -21,6 +21,7 @@ class Database:
         self.col = self.db.users
         self.nfy = self.db.notify
         self.chl = self.db.channels 
+        self.tasks = self.db.forward_tasks
         
     def new_user(self, id, name):
         return dict(
@@ -121,13 +122,21 @@ class Database:
         return default 
        
     async def add_bot(self, datas):
-       if not await self.is_bot_exist(datas['user_id']):
+       # Allow multiple forwarding bots per user; keep each bot/session unique.
+       exists = await self.bot.find_one({'user_id': int(datas['user_id']), 'id': int(datas['id'])})
+       if not exists:
           await self.bot.insert_one(datas)
+       return True
+
+    async def get_bots(self, user_id: int):
+       return [b async for b in self.bot.find({'user_id': int(user_id)}).sort('id', 1)]
 #Dont Remove My Credit @Silicon_Bot_Update 
 #This Repo Is By @Silicon_Official 
 # For Any Kind Of Error Ask Us In Support Group @Silicon_Botz     
-    async def remove_bot(self, user_id):
-       await self.bot.delete_many({'user_id': int(user_id)})
+    async def remove_bot(self, user_id, bot_id=None):
+       if bot_id is None:
+          return await self.bot.delete_many({'user_id': int(user_id)})
+       return await self.bot.delete_one({'user_id': int(user_id), 'id': int(bot_id)})
       
     async def get_bot(self, user_id: int):
        bot = await self.bot.find_one({'user_id': user_id})
@@ -169,7 +178,7 @@ class Database:
        return filters
               
     async def add_frwd(self, user_id):
-       return await self.nfy.insert_one({'user_id': int(user_id)})
+       return await self.nfy.update_one({'user_id': int(user_id)}, {'$set': {'user_id': int(user_id)}}, upsert=True)
     
     async def rmve_frwd(self, user_id=0, all=False):
        data = {} if all else {'user_id': int(user_id)}
@@ -177,6 +186,28 @@ class Database:
     
     async def get_all_frwd(self):
        return self.nfy.find({})
+
+    # Persistent forwarding-task storage. This survives process/container restarts.
+    async def create_forward_task(self, task):
+       await self.tasks.insert_one(task)
+       return task
+
+    async def get_forward_task(self, task_id):
+       return await self.tasks.find_one({'_id': task_id})
+
+    async def get_active_forward_tasks(self):
+       return [t async for t in self.tasks.find({'status': {'$in': ['running', 'paused', 'recovering']}})]
+
+    async def update_forward_worker(self, task_id, worker_index, **fields):
+       update = {f'workers.{worker_index}.{k}': v for k, v in fields.items()}
+       await self.tasks.update_one({'_id': task_id}, {'$set': update})
+
+    async def set_forward_task(self, task_id, **fields):
+       await self.tasks.update_one({'_id': task_id}, {'$set': fields})
+
+    async def delete_forward_task(self, task_id):
+       await self.tasks.delete_one({'_id': task_id})
+
        
  #Dont Remove My Credit @Silicon_Bot_Update 
 #This Repo Is By @Silicon_Official 
