@@ -8,5 +8,5 @@ RUN pip3 install -U pip && pip3 install -U -r /requirements.txt
 RUN mkdir -p /fwdbot
 WORKDIR /fwdbot
 COPY . /fwdbot/
-RUN chmod +x /start.sh
-CMD ["/bin/bash", "/start.sh"]
+RUN chmod +x /fwdbot/start.sh
+CMD ["/bin/bash", "/fwdbot/start.sh"]
