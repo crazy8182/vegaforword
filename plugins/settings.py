@@ -31,30 +31,20 @@ async def settings_query(bot, query):
        reply_markup=main_buttons())
        
   elif type=="bots":
-     buttons = [] 
-     _bot = await db.get_bot(user_id)
-     if _bot is not None:
-        buttons.append([InlineKeyboardButton(_bot['name'],
-                         callback_data=f"settings#editbot")])
-        buttons.append([InlineKeyboardButton('✚ ᴀᴅᴅ ᴜsᴇʀ ʙᴏᴛ ✚', 
-                         callback_data="settings#adduserbot")])
-        buttons.append([InlineKeyboardButton('✚ ʟᴏɢɪɴ ᴜsᴇʀ ʙᴏᴛ ✚', 
-                         callback_data="settings#addlogin")])
-
-
-     else:
-        buttons.append([InlineKeyboardButton('✚ ᴀᴅᴅ ʙᴏᴛ ✚', 
-                         callback_data="settings#addbot")])
-        buttons.append([InlineKeyboardButton('✚ ᴀᴅᴅ ᴜsᴇʀ ʙᴏᴛ ✚', 
-                         callback_data="settings#adduserbot")])
-        buttons.append([InlineKeyboardButton('✚ ʟᴏɢɪɴ ᴜsᴇʀ ʙᴏᴛ ✚', 
-                         callback_data="settings#addlogin")])
-     buttons.append([InlineKeyboardButton('• ʙᴀᴄᴋ', 
-                      callback_data="settings#main")])
+     buttons = []
+     bot_list = await db.get_bots(user_id)
+     for saved_bot in bot_list:
+        kind = "🤖" if saved_bot.get('is_bot') else "👤"
+        buttons.append([InlineKeyboardButton(f"{kind} {saved_bot.get('name', 'Bot')}",
+                         callback_data=f"settings#editbot_{saved_bot['id']}")])
+     buttons.append([InlineKeyboardButton('✚ ᴀᴅᴅ ʙᴏᴛ ✚', callback_data="settings#addbot")])
+     buttons.append([InlineKeyboardButton('✚ ᴀᴅᴅ ᴜsᴇʀ ʙᴏᴛ ✚', callback_data="settings#adduserbot")])
+     buttons.append([InlineKeyboardButton('✚ ʟᴏɢɪɴ ᴜsᴇʀ ʙᴏᴛ ✚', callback_data="settings#addlogin")])
+     buttons.append([InlineKeyboardButton('• ʙᴀᴄᴋ', callback_data="settings#main")])
      await query.message.edit_text(
-       "<b><u>ᴍʏ ʙᴏᴛs</b></u>\n\n<b>ʏᴏᴜ ᴄᴀɴ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴀʟʟ ʙᴏᴛ ғʀᴏᴍ ʜᴇʀᴇ</b>",
+       f"<b><u>ᴍʏ ʙᴏᴛs</b></u>\n\n<b>Saved bots: {len(bot_list)}\nUp to 3 bots will be used together for forwarding.</b>",
        reply_markup=InlineKeyboardMarkup(buttons))
-  
+
   elif type=="addbot":
      await query.message.delete()
      bot = await CLIENT.add_bot(bot, query)
@@ -127,22 +117,27 @@ async def settings_query(bot, query):
 #This Repo Is By @Silicon_Official 
 # For Any Kind Of Error Ask Us In Support Group @Silicon_Botz 
   
-  elif type=="editbot": 
-     bot = await db.get_bot(user_id)
+  elif type.startswith("editbot"):
+     parts = type.split('_', 1)
+     bot_id = int(parts[1]) if len(parts) > 1 else None
+     bot = next((b for b in await db.get_bots(user_id) if int(b['id']) == bot_id), None)
+     if not bot:
+        return await query.message.edit_text("<b>Bot not found.</b>", reply_markup=InlineKeyboardMarkup(buttons))
      TEXT = Translation.BOT_DETAILS if bot['is_bot'] else Translation.USER_DETAILS
-     buttons = [[InlineKeyboardButton('❌ ʀᴇᴍᴏᴠᴇ ❌', callback_data=f"settings#removebot")
-               ],
-               [InlineKeyboardButton('• ʙᴀᴄᴋ', callback_data="settings#bots")]]
+     buttons = [[InlineKeyboardButton('❌ ʀᴇᴍᴏᴠᴇ ❌', callback_data=f"settings#removebot_{bot_id}")],
+                [InlineKeyboardButton('• ʙᴀᴄᴋ', callback_data="settings#bots")]]
      await query.message.edit_text(
         TEXT.format(bot['name'], bot['id'], bot['username']),
         reply_markup=InlineKeyboardMarkup(buttons))
-                                             
-  elif type=="removebot":
-     await db.remove_bot(user_id)
+
+  elif type.startswith("removebot"):
+     parts = type.split('_', 1)
+     bot_id = int(parts[1]) if len(parts) > 1 else None
+     await db.remove_bot(user_id, bot_id)
      await query.message.edit_text(
         "<b>sᴜᴄᴄᴇssғᴜʟʟʏ ᴜᴘᴅᴀᴛᴇᴅ ✅</b>",
         reply_markup=InlineKeyboardMarkup(buttons))
-                                             
+
   elif type.startswith("editchannels"): 
      chat_id = type.split('_')[1]
      chat = await db.get_channel_details(user_id, chat_id)
@@ -536,52 +531,52 @@ async def filters_buttons(user_id):
   filters = filter['filters']
   buttons = [[
        InlineKeyboardButton('🏷️ ғᴏʀᴡᴀʀᴅ ᴛᴀɢ',
-                    callback_data=f'settings_#updatefilter-forward_tag-{filter["forward_tag"]}'),
+                    callback_data=f'settings#updatefilter-forward_tag-{filter["forward_tag"]}'),
        InlineKeyboardButton('✅' if filter['forward_tag'] else '❌',
                     callback_data=f'settings#updatefilter-forward_tag-{filter["forward_tag"]}')
        ],[
        InlineKeyboardButton('🖍️ ᴛᴇxᴛ',
-                    callback_data=f'settings_#updatefilter-text-{filters["text"]}'),
+                    callback_data=f'settings#updatefilter-text-{filters["text"]}'),
        InlineKeyboardButton('✅' if filters['text'] else '❌',
                     callback_data=f'settings#updatefilter-text-{filters["text"]}')
        ],[
        InlineKeyboardButton('📁 ᴅᴏᴄᴜᴍᴇɴᴛs',
-                    callback_data=f'settings_#updatefilter-document-{filters["document"]}'),
+                    callback_data=f'settings#updatefilter-document-{filters["document"]}'),
        InlineKeyboardButton('✅' if filters['document'] else '❌',
                     callback_data=f'settings#updatefilter-document-{filters["document"]}')
        ],[
        InlineKeyboardButton('🎞️ ᴠɪᴅᴇᴏs',
-                    callback_data=f'settings_#updatefilter-video-{filters["video"]}'),
+                    callback_data=f'settings#updatefilter-video-{filters["video"]}'),
        InlineKeyboardButton('✅' if filters['video'] else '❌',
                     callback_data=f'settings#updatefilter-video-{filters["video"]}')
        ],[
        InlineKeyboardButton('📷 ᴘʜᴏᴛᴏs',
-                    callback_data=f'settings_#updatefilter-photo-{filters["photo"]}'),
+                    callback_data=f'settings#updatefilter-photo-{filters["photo"]}'),
        InlineKeyboardButton('✅' if filters['photo'] else '❌',
                     callback_data=f'settings#updatefilter-photo-{filters["photo"]}')
        ],[
        InlineKeyboardButton('🎧 ᴀᴜᴅɪᴏs',
-                    callback_data=f'settings_#updatefilter-audio-{filters["audio"]}'),
+                    callback_data=f'settings#updatefilter-audio-{filters["audio"]}'),
        InlineKeyboardButton('✅' if filters['audio'] else '❌',
                     callback_data=f'settings#updatefilter-audio-{filters["audio"]}')
        ],[
        InlineKeyboardButton('🎤 ᴠᴏɪᴄᴇs',
-                    callback_data=f'settings_#updatefilter-voice-{filters["voice"]}'),
+                    callback_data=f'settings#updatefilter-voice-{filters["voice"]}'),
        InlineKeyboardButton('✅' if filters['voice'] else '❌',
                     callback_data=f'settings#updatefilter-voice-{filters["voice"]}')
        ],[
        InlineKeyboardButton('🎭 ᴀɴɪᴍᴀᴛɪᴏɴs',
-                    callback_data=f'settings_#updatefilter-animation-{filters["animation"]}'),
+                    callback_data=f'settings#updatefilter-animation-{filters["animation"]}'),
        InlineKeyboardButton('✅' if filters['animation'] else '❌',
                     callback_data=f'settings#updatefilter-animation-{filters["animation"]}')
        ],[
        InlineKeyboardButton('🃏 sᴛɪᴄᴋᴇʀs',
-                    callback_data=f'settings_#updatefilter-sticker-{filters["sticker"]}'),
+                    callback_data=f'settings#updatefilter-sticker-{filters["sticker"]}'),
        InlineKeyboardButton('✅' if filters['sticker'] else '❌',
                     callback_data=f'settings#updatefilter-sticker-{filters["sticker"]}')
        ],[
        InlineKeyboardButton('▶️ sᴋɪᴘ ᴅᴜᴘʟɪᴄᴀᴛᴇ',
-                    callback_data=f'settings_#updatefilter-duplicate-{filter["duplicate"]}'),
+                    callback_data=f'settings#updatefilter-duplicate-{filter["duplicate"]}'),
        InlineKeyboardButton('✅' if filter['duplicate'] else '❌',
                     callback_data=f'settings#updatefilter-duplicate-{filter["duplicate"]}')
        ],[
@@ -597,12 +592,12 @@ async def next_filters_buttons(user_id):
   filters = filter['filters']
   buttons = [[
        InlineKeyboardButton('📊 ᴘᴏʟʟ',
-                    callback_data=f'settings_#updatefilter-poll-{filters["poll"]}'),
+                    callback_data=f'settings#updatefilter-poll-{filters["poll"]}'),
        InlineKeyboardButton('✅' if filters['poll'] else '❌',
                     callback_data=f'settings#updatefilter-poll-{filters["poll"]}')
        ],[
        InlineKeyboardButton('🔒 sᴇᴄᴜʀᴇ ᴍᴇssᴀɢᴇs',
-                    callback_data=f'settings_#updatefilter-protect-{filter["protect"]}'),
+                    callback_data=f'settings#updatefilter-protect-{filter["protect"]}'),
        InlineKeyboardButton('✅' if filter['protect'] else '❌',
                     callback_data=f'settings#updatefilter-protect-{filter["protect"]}')
        ],[
