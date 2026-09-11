@@ -21,6 +21,23 @@ class STS:
                       'fetched': skip, 'filtered': 0, 'deleted': 0, 'duplicate': 0, 'total': limit, 'start': 0}
         self.get(full=True)
         return STS(self.id)
+
+    def restore(self, values):
+        """Restore an in-memory task status from the persistent task record."""
+        if not values:
+            return self
+        current = dict(values)
+        # Keep the same fields used by the original progress/edit code.
+        current.setdefault('total_files', 0)
+        current.setdefault('fetched', current.get('skip', 0))
+        current.setdefault('filtered', 0)
+        current.setdefault('deleted', 0)
+        current.setdefault('duplicate', 0)
+        current.setdefault('start', 0)
+        current.setdefault('total', current.get('limit', 0))
+        self.data[self.id] = current
+        self.get(full=True)
+        return self
         
     def get(self, value=None, full=False):
         values = self.data.get(self.id)

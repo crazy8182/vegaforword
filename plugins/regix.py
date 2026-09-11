@@ -220,6 +220,25 @@ async def recover_forward_tasks(app):
           await db.set_forward_task(task['_id'], status='completed', updated_at=time.time()); continue
         # New tasks have one worker. Legacy multi-worker tasks are still recoverable.
         await db.set_forward_task(task['_id'], status='recovering', updated_at=time.time())
+        # Rebuild the in-memory STS entry before recovery. After a process restart
+        # STATUS is empty, while the task itself is persisted in MongoDB.
+        # Without this, copy()/edit() receives STS(task_id) with no data and
+        # crashes with: 'NoneType' object has no attribute 'get'.
+        task_sts = STS(task['_id'])
+        task_sts.restore({
+            'FROM': task.get('FROM'),
+            'TO': task.get('TO'),
+            'total_files': sum(int(w.get('forwarded', 0) or 0) for w in task.get('workers', [])),
+            'skip': int(task.get('start', 0) or 0),
+            'limit': int(task.get('end', task.get('start', 0)) or 0),
+            'bot_id': task.get('bot_id'),
+            'fetched': sum(int(w.get('fetched', 0) or 0) for w in task.get('workers', [])),
+            'filtered': sum(int(w.get('filtered', 0) or 0) for w in task.get('workers', [])),
+            'deleted': sum(int(w.get('deleted', 0) or 0) for w in task.get('workers', [])),
+            'duplicate': sum(int(w.get('duplicate', 0) or 0) for w in task.get('workers', [])),
+            'total': max(1, int(task.get('end', 0) or 0) - int(task.get('start', 0) or 0) + 1),
+            'start': time.time(),
+        })
         temp.CANCEL[task['_id']] = False
         temp.forwardings += 1
         if task.get('TO') is not None: temp.IS_FRWD_CHAT.append(task['TO'])
