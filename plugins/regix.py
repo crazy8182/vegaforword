@@ -335,7 +335,7 @@ async def edit(msg, title, status, sts):
    progress = "▰{0}{1}".format(
        ''.join(["▰" for i in range(math.floor(int(percentage) / 10))]),
        ''.join(["▱" for i in range(10 - math.floor(int(percentage) / 10))]))
-   button =  [[InlineKeyboardButton(progress, f'fwrdstatus#{status}#{estimated_total_time}#{percentage}#{i.id}')]]
+   button = [[InlineKeyboardButton(progress, f'fwrdstatus#{i.id}')]]
    estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
    estimated_total_time = estimated_total_time if estimated_total_time != '' else '0 s'
 
@@ -506,17 +506,26 @@ async def terminate_frwding(bot, m):
 
 @Client.on_callback_query(filters.regex(r'^fwrdstatus'))
 async def status_msg(bot, msg):
-    _, status, est_time, percentage, frwd_id = msg.data.split("#")
-    sts = STS(frwd_id)
-    if not sts.verify():
-       fetched, forwarded, remaining, skipped = 0
-    else:
-       total = sts.get('total')
-       skipped = sts.get('skip')
-       fetched, forwarded = sts.get('fetched'), sts.get('total_files')
-       remaining = total - forwarded - skipped
-    est_time = TimeFormatter(milliseconds=est_time)
-    est_time = est_time if (est_time != '' or status not in ['completed', 'cancelled']) else '0 s'
+    # Keep callback_data very small. Telegram allows only 64 bytes.
+    parts = msg.data.split("#", 1)
+    frwd_id = parts[1] if len(parts) == 2 else None
+    sts = STS(frwd_id) if frwd_id else None
+    if not sts or not sts.verify():
+       return await msg.answer("ᴛᴀsᴋ ɪs ɴᴏ ʟᴏɴɢᴇʀ ᴀᴠᴀɪʟᴀʙʟᴇ.", show_alert=True)
+
+    total = int(sts.get('total') or 0)
+    skipped = int(sts.get('skip') or 0)
+    fetched = int(sts.get('fetched') or 0)
+    forwarded = int(sts.get('total_files') or 0)
+    remaining = max(0, total - fetched - skipped)
+    percentage = 0 if total <= 0 else min(100, round(fetched * 100 / total))
+
+    # Estimate from the same live STS timing data used by the progress editor.
+    diff = max(1, int(time.time() - float(sts.get('start') or time.time())))
+    speed = sts.divide(fetched, diff)
+    eta_ms = round(sts.divide(max(0, total - fetched), int(speed))) * 1000 if speed > 0 else 0
+    status = 'ᴄᴏᴍᴘʟᴇᴛᴇᴅ' if fetched >= total else 'ғᴏʀᴡᴀʀᴅɪɴɢ'
+    est_time = TimeFormatter(milliseconds=eta_ms) or '0 s'
     return await msg.answer(PROGRESS.format(percentage, fetched, forwarded, remaining, status, est_time), show_alert=True)
 
 #Dont Remove My Credit @Silicon_Bot_Update 
