@@ -42,19 +42,13 @@ class Bot(Client):
         app = web.AppRunner(await web_server())
         await app.setup()
         bind_address = "0.0.0.0"
-        await web.TCPSite(app, bind_address, int(Config.PORT) + 1).start()
+        await web.TCPSite(app, bind_address, Config.PORT).start()
         self.id = me.id
         self.username = me.username
         self.first_name = me.first_name
         self.set_parse_mode(ParseMode.DEFAULT)
         text = "<b>๏[-ิ_•ิ]๏ ʙᴏᴛ ʀᴇsᴛᴀʀᴛᴇᴅ !</b>"
         logging.info(text)
-        # Recover forwarding tasks from MongoDB without blocking bot startup.
-        try:
-            from plugins.regix import recover_forward_tasks
-            asyncio.create_task(recover_forward_tasks(self))
-        except Exception as e:
-            logging.exception("Unable to start forwarding-task recovery: %s", e)
         success = failed = 0
 #Dont Remove My Credit @Silicon_Bot_Update 
 #This Repo Is By @Silicon_Official 
@@ -72,6 +66,7 @@ class Bot(Client):
            except Exception:
               failed += 1 
         if (success + failed) != 0:
+           await db.rmve_frwd(all=True)
            logging.info(f"Restart message status"
                  f"success: {success}"
                  f"failed: {failed}")
