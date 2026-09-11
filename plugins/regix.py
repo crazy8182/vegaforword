@@ -340,6 +340,10 @@ async def msg_edit(msg, text, button=None, wait=None):
 # For Any Kind Of Error Ask Us In Support Group @Silicon_Botz 
 
 async def edit(msg, title, status, sts):
+   # During restart recovery there is no Telegram status message.
+   # Never try to edit None; forwarding must continue after FloodWait.
+   if msg is None:
+      return
    i = sts.get(full=True)
    status = 'ғᴏʀᴡᴀʀᴅɪɴɢ' if status == 10 else f"sʟᴇᴇᴘɪɴɢ {status} s" if str(status).isnumeric() else status
    percentage = "{:.0f}".format(float(i.fetched)*100/float(i.total))
