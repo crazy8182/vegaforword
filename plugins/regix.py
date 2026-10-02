@@ -28,6 +28,35 @@ TEXT = Translation.TEXT
 #This Repo Is By @Silicon_Official 
 # For Any Kind Of Error Ask Us In Support Group @Silicon_Botz 
 
+def _message_filter_type(msg):
+    """Return the settings key matching the actual Telegram message type."""
+    if getattr(msg, "poll", None):
+        return "poll"
+    if getattr(msg, "photo", None):
+        return "photo"
+    if getattr(msg, "video", None):
+        return "video"
+    if getattr(msg, "document", None):
+        return "document"
+    if getattr(msg, "audio", None):
+        return "audio"
+    if getattr(msg, "voice", None):
+        return "voice"
+    if getattr(msg, "animation", None):
+        return "animation"
+    if getattr(msg, "sticker", None):
+        return "sticker"
+    if getattr(msg, "text", None) is not None:
+        return "text"
+    return None
+
+
+def _is_filtered_message(msg, disabled_filters):
+    """Return True when this message type is disabled in settings."""
+    msg_type = _message_filter_type(msg)
+    return bool(msg_type and msg_type in disabled_filters)
+
+
 @Client.on_callback_query(filters.regex(r'^start_public'))
 async def pub_(bot, message):
     user = message.from_user.id
